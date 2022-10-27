@@ -20,7 +20,6 @@ class List {
 public:
 
 	Chainon * tete;
-
 	List(): tete(nullptr)  {}
 
 	~List() {

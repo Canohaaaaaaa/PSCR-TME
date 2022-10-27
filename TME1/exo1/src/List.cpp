@@ -1,3 +1,4 @@
+#include "List.h"
 
 namespace pr {
 
@@ -12,6 +13,7 @@ size_t Chainon::length() {
 	return length();
 }
 
+//FAUTE : pas dans list.h
 void Chainon::print (std::ostream & os) {
 	os << data ;
 	if (next != nullptr) {
