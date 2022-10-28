@@ -37,7 +37,7 @@ public:
 	}
 	void start(int nbThread){
 		for(int i=0; i < nbThread; i++){
-			threads.push_back(std::thread(&Pool::poolWorker, this, std::ref(queue)));
+			threads.emplace_back(std::thread(&Pool::poolWorker, this, std::ref(queue)));
 		}
 	}
 };

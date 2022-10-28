@@ -152,7 +152,7 @@ public :
 
 			if (targetSphere == -1) {
 				// keep background color
-				return;
+				continue;
 			} else {
 				const Sphere & obj = *(scene.begin() + targetSphere);
 				// pixel prend la couleur de l'objet
@@ -193,9 +193,9 @@ int main () {
 
 	// Les couleurs des pixels dans l'image finale
 	Color * pixels = new Color[scene.getWidth() * scene.getHeight()];
-	Pool pool(2000);
-	pool.start(16);
-	Barrier b(2000);
+	Pool pool(20000);
+	pool.start(50);
+	Barrier b(scene.getWidth());
 	// pour chaque pixel, calculer sa couleur
 	for (int x =0 ; x < scene.getWidth() ; x++) {
 		pool.submit(new PixelJob(scene, screen, x, lights, pixels, b));
