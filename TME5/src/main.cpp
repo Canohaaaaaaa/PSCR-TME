@@ -8,6 +8,7 @@
 #include <fstream>
 #include <limits>
 #include <random>
+#include <unistd.h>
 
 using namespace std;
 using namespace pr;
@@ -99,7 +100,73 @@ void exportImage(const char * path, size_t width, size_t height, Color * pixels)
 	// oui ca fait un gros fichier :D
 	img.close();
 }
+class Barrier {
+	mutex m;
+	int compteur;
+	int N;
+	condition_variable cv;
+public :
+	Barrier(int N): N(N), compteur(0){};
 
+void waitFor(){
+	unique_lock<mutex> l(m);
+	while(compteur < N){
+		cv.wait(l);
+	}
+}
+
+void done(){
+	unique_lock<mutex> l(m);
+	++compteur;
+	if(compteur == N){
+		cv.notify_all();
+	}
+}
+};
+class PixelJob : public Job {
+	int calcul (int v) {
+		std::cout << "Computing for arg =" << v << std::endl;
+		// traiter un gros calcul
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		int ret = v % 255;
+		std::cout << "Obtained for arg =" << arg <<  " result " << ret << std::endl;
+		return ret;
+	}
+	int arg;
+	int x;
+	Scene& scene;
+	const Scene::screen_t& screen;
+	vector<Vec3D> &lights;
+	Color* pixels;
+	Barrier& b;
+public :
+	PixelJob(Scene& scene, const Scene::screen_t& screen, int x, vector<Vec3D> &lights, Color* pixels, Barrier& b) : scene(scene), screen(screen), x(x), lights(lights), pixels(pixels), b(b){}
+	void run () {
+		for (int  y = 0 ; y < scene.getHeight() ; y++) {
+			// le point de l'ecran par lequel passe ce rayon
+			auto & screenPoint = screen[y][x];
+			// le rayon a inspecter
+			Rayon  ray(scene.getCameraPos(), screenPoint);
+
+			int targetSphere = findClosestInter(scene, ray);
+
+			if (targetSphere == -1) {
+				// keep background color
+				return;
+			} else {
+				const Sphere & obj = *(scene.begin() + targetSphere);
+				// pixel prend la couleur de l'objet
+				Color finalcolor = computeColor(obj, ray, scene.getCameraPos(), lights);
+				// le point de l'image (pixel) dont on vient de calculer la couleur
+				Color & pixel = pixels[y*scene.getHeight() + x];
+				// mettre a jour la couleur du pixel dans l'image finale.
+				pixel = finalcolor;
+			}
+		}
+		b.done();
+	}
+	~PixelJob(){}
+};
 // NB : en francais pour le cours, preferez coder en english toujours.
 // pas d'accents pour eviter les soucis d'encodage
 
@@ -126,14 +193,16 @@ int main () {
 
 	// Les couleurs des pixels dans l'image finale
 	Color * pixels = new Color[scene.getWidth() * scene.getHeight()];
-	Pool pool(4);
+	Pool pool(2000);
+	pool.start(16);
+	Barrier b(2000);
 	// pour chaque pixel, calculer sa couleur
 	for (int x =0 ; x < scene.getWidth() ; x++) {
-		for (int  y = 0 ; y < scene.getHeight() ; y++) {
-			pool.submit(new PixelJob(scene, screen, x, y,))
-		}
+		pool.submit(new PixelJob(scene, screen, x, lights, pixels, b));
 	}
-
+	//sleep(5);
+	b.waitFor();
+	pool.stop();
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	    std::cout << "Total time "
 	              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
