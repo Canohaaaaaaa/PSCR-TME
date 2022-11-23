@@ -3,7 +3,8 @@
 
 #include <cstdlib>
 #include <mutex>
-
+#include <condition_variable>
+#include <cstring>
 namespace pr {
 
 // MT safe version of the Queue, non blocking.
@@ -14,7 +15,9 @@ class Queue {
 	size_t begin;
 	size_t sz;
 	mutable std::mutex m;
-
+	bool block;
+	std::condition_variable cv_cons;
+	std::condition_variable cv_prod; 
 	// fonctions private, sans protection mutex
 	bool empty() const {
 		return sz == 0;
@@ -23,7 +26,7 @@ class Queue {
 		return sz == allocsize;
 	}
 public:
-	Queue(size_t size) :allocsize(size), begin(0), sz(0) {
+	Queue(size_t size) :allocsize(size), begin(0), sz(0), block(true) {
 		tab = new T*[size];
 		memset(tab, 0, size * sizeof(T*));
 	}
@@ -33,23 +36,37 @@ public:
 	}
 	T* pop() {
 		std::unique_lock<std::mutex> lg(m);
-		if (empty()) {
+		while(empty() && block) {
+			cv_cons.wait(lg);
+		}
+		if(empty() && !block) {
 			return nullptr;
 		}
 		auto ret = tab[begin];
 		tab[begin] = nullptr;
 		sz--;
 		begin = (begin + 1) % allocsize;
+		cv_prod.notify_one();
 		return ret;
 	}
 	bool push(T* elt) {
 		std::unique_lock<std::mutex> lg(m);
-		if (full()) {
+		while (full() && block) {
+			cv_prod.wait(lg);
+		}
+		if(full() && !block){
 			return false;
 		}
 		tab[(begin + sz) % allocsize] = elt;
 		sz++;
+		cv_cons.notify_one();
 		return true;
+	}
+	void setBlocking(bool isBlocking){
+		std::unique_lock<std::mutex> lg(m);
+		block = isBlocking;
+		cv_cons.notify_all();
+		cv_prod.notify_all();
 	}
 	~Queue() {
 		// ?? lock a priori inutile, ne pas detruire si on travaille encore avec
