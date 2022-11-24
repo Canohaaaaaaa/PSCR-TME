@@ -17,14 +17,17 @@ void degat(int sig){
 	}
 }
 
-void setup_handler(){
+void pare(int sig){
+	cout << "coup paré !" << endl;
+}
+void setup_handler_degat(){
 	struct sigaction handler_setup;
 	handler_setup.sa_handler = degat;
 	sigaction(SIGCHLD, &handler_setup, NULL);
 }
 
 void attaque(pid_t adversaire){
-	setup_handler();
+	setup_handler_degat();
 	cout << nom << " attaque !" <<  endl;
 	int resultat = kill(adversaire, SIGCHLD);
 	if(!(kill(adversaire, SIGCHLD) == -1)){
@@ -47,17 +50,41 @@ void defense(){
 	cout << nom << " ne bloque plus." << endl;
 }
 
-void combat(pid_t adversaire){
+void defense_luke(){
+	struct sigaction defense_nouveau_handler;
+	defense_nouveau_handler.sa_handler = pare;
+	sigset_t masque;
+	sigemptyset(&masque);
+	sigaddset(&masque, SIGCHLD);
+	sigaction(SIGCHLD, &defense_nouveau_handler, NULL);
+	sigprocmask(SIG_SETMASK, &masque, NULL);
+	cout << nom << " bloque !" << endl;
+	randsleep();
+	sigfillset (&masque);
+	sigdelset(&masque, SIGCHLD);
+	sigsuspend(&masque);
+	defense_nouveau_handler.sa_handler =  degat;
+	sigaction(SIGCHLD, &defense_nouveau_handler, NULL);
+	cout << nom << " ne bloque plus." << endl;
+}
+
+void combat(pid_t adversaire, bool luke = false){
 	while(true){
 		attaque(adversaire);
-		defense();
+		if(luke){
+			defense_luke();
+
+		}
+		else{
+			defense();
+		}
 	}
 }
 
 int main(void){
 	pid_t pid_pere = getpid(); //Vador est le pere evidemment
 	pid_t pid_fils = fork();
-	setup_handler();
+	setup_handler_degat();
 
 	if(pid_fils == -1){
 		return 1;
@@ -71,7 +98,7 @@ int main(void){
 		nom = "Luke";
 		cout << "Je suis " << nom << endl;
 		cout << "Mon pere est " << pid_pere << endl;
-		combat(pid_pere);
+		combat(pid_pere, true);
 	}
 	return 0;
 }
