@@ -2,10 +2,12 @@
 #include <iostream>
 #include <signal.h>
 #include <unistd.h>
+#include "rsleep.h"
 using namespace std;
 
 int point_vie = 3;
 char* nom = "Vador";
+
 void degat(int sig){
 	point_vie--;
 	cout << nom << " a : " << point_vie << "PV" << endl;
@@ -20,13 +22,13 @@ void setup_handler(){
 	handler_setup.sa_handler = degat;
 	sigaction(SIGCHLD, &handler_setup, NULL);
 }
+
 void attaque(pid_t adversaire){
 	setup_handler();
 	cout << nom << " attaque !" <<  endl;
 	int resultat = kill(adversaire, SIGCHLD);
 	if(!(kill(adversaire, SIGCHLD) == -1)){
-		sleep(1);
-		//TODO randsleep
+		randsleep();
 	}
 	else{
 		cout << nom << " a gagné !" << endl;
@@ -39,8 +41,7 @@ void defense(){
 	defense_ignore.sa_handler =  SIG_IGN;
 	sigaction(SIGCHLD, &defense_ignore, NULL);
 	cout << nom << " bloque !" << endl;
-	sleep(1);
-	//TODO randsleep
+	randsleep();
 	defense_ignore.sa_handler =  degat;
 	sigaction(SIGCHLD, &defense_ignore, NULL);
 	cout << nom << " ne bloque plus." << endl;
@@ -57,6 +58,7 @@ int main(void){
 	pid_t pid_pere = getpid(); //Vador est le pere evidemment
 	pid_t pid_fils = fork();
 	setup_handler();
+
 	if(pid_fils == -1){
 		return 1;
 	}
