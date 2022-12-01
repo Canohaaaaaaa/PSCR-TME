@@ -3,8 +3,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <vector>
-
-
 using namespace std;
 using namespace pr;
 
@@ -23,18 +21,25 @@ void consomateur (Stack<char> * stack) {
 }
 
 int main () {
+	int desc;
 	Stack<char> * s = new Stack<char>();
-
-	pid_t pp = fork();
-	if (pp==0) {
-		producteur(s);
-		return 0;
+	int N = 2;
+	int M = 3;
+	pid_t pid_fils;
+	for(int i = 0; i < N; i++){
+		pid_fils = fork();
+		if(pid_fils == 0){
+			cout << "X" << endl;
+			producteur(s);
+			return 0;
+		}
 	}
-
-	pid_t pc = fork();
-	if (pc==0) {
-		consomateur(s);
-		return 0;
+	for(int i = 0; i < M; i++){
+		pid_fils = fork();
+		if(pid_fils == 0){
+			consomateur(s);
+			return 0;
+		}
 	}
 
 	wait(0);
