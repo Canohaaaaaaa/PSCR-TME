@@ -11,37 +11,37 @@ template<typename T>
 class Stack {
 	T tab [STACKSIZE];
 	size_t sz;
-	sem_t* semaphore_conso;
-	sem_t* semaphore_prod;
+	sem_t semaphore_full;
+	sem_t semaphore_empty;
+	sem_t mutex;
 public :
 	Stack () : sz(0) { 
 		memset(tab,0,sizeof tab);
-		semaphore_conso = sem_open("/stacksemconso", O_CREAT | O_RDWR, 0600, 1);
-		semaphore_prod = sem_open("/stacksemprod", O_CREAT | O_RDWR, 0600, 1);
+		sem_init(&semaphore_full, 1, STACKSIZE);
+		sem_init(&semaphore_empty, 1, 0);
+		sem_init(&mutex, 1, 1);
+	}
+	~Stack() {
+		sem_destroy(&semaphore_full);
+		sem_destroy(&semaphore_empty);
+		sem_destroy(&mutex);
 	}
 
 	T pop () {
-		if(!sz){
-			sem_wait(semaphore_conso);
-			T toret = tab[--sz];
-			sem_post(semaphore_prod);
-			return toret;
-		}
-		else{
-			T toret = tab[--sz];
-			return toret;
-		}
+		sem_wait(&semaphore_full);
+		sem_wait(&mutex);
+		T toret = tab[--sz];
+		sem_post(&semaphore_empty);
+		sem_wait(&mutex);
+		return toret;
 	}
 
 	void push(T elt) {
-		if(sz == STACKSIZE){
-			sem_wait(semaphore_prod);
-			tab[sz++] = elt;
-			sem_post(semaphore_conso);
-		}
-		else{
-			tab[sz++] = elt;
-		}
+		sem_wait(&semaphore_empty);
+		sem_wait(&mutex);
+		tab[sz++] = elt;
+		sem_post(&semaphore_full);
+		sem_wait(&mutex);
 	}
 };
 

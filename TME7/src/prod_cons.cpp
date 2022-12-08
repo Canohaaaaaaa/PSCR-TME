@@ -2,7 +2,11 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/wait.h>
+#include<sys/mman.h>
+#include<sys/types.h>
+#include <sys/stat.h>
 #include <vector>
+#include <fcntl.h>
 using namespace std;
 using namespace pr;
 
@@ -21,8 +25,16 @@ void consomateur (Stack<char> * stack) {
 }
 
 int main () {
-	int desc;
+	int desc = shm_open("/stack_segment", O_RDWR | O_CREAT, 0600);
+	if(desc == -1){
+		perror("segment");
+		return 1;
+	} 
 	Stack<char> * s = new Stack<char>();
+	if(ftruncate(desc, sizeof(s)) == -1) {
+		perror("ftruncate");
+		exit(1);
+	}
 	int N = 2;
 	int M = 3;
 	pid_t pid_fils;
