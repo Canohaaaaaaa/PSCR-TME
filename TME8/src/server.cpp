@@ -2,8 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 
-int main00() {
-	pr::ServerSocket ss(1664);
+int main() {
+	pr::ServerSocket ss(1666);
 
 	while (1) {
 		pr::Socket sc = ss.accept();
@@ -21,7 +21,7 @@ int main00() {
 	return 0;
 }
 
-int main() {
+int main000() {
 	pr::ServerSocket ss(1664);
 
 	while (1) {

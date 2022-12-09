@@ -4,9 +4,9 @@
 #include <string>
 
 
-int main00() {
+int main() {
 	pr::Socket sock;
-	sock.connect("localhost", 1664);
+	sock.connect("localhost", 1666);
 	int N=42;
 	write(sock.getFD(),&N,sizeof(int));
 	read(sock.getFD(),&N,sizeof(int));
@@ -45,7 +45,7 @@ int main0() {
 
 
 // avec une boucle, on attend un 0
-int main() {
+int main000() {
 
 	pr::Socket sock;
 
