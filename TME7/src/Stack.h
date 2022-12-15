@@ -3,6 +3,8 @@
 #include <cstring> // size_t,memset
 #include <semaphore.h>
 #include <fcntl.h>
+#include <iostream>
+using namespace std;
 namespace pr {
 
 #define STACKSIZE 100
@@ -28,20 +30,22 @@ public :
 	}
 
 	T pop () {
-		sem_wait(&semaphore_full);
+		sem_wait(&semaphore_empty);
 		sem_wait(&mutex);
+		cout << "popped !" << endl;
 		T toret = tab[--sz];
-		sem_post(&semaphore_empty);
-		sem_wait(&mutex);
+		sem_post(&semaphore_full);
+		sem_post(&mutex);
 		return toret;
 	}
 
 	void push(T elt) {
-		sem_wait(&semaphore_empty);
+		sem_wait(&semaphore_full);
 		sem_wait(&mutex);
+		cout << "pushed !" << endl;
 		tab[sz++] = elt;
-		sem_post(&semaphore_full);
-		sem_wait(&mutex);
+		sem_post(&semaphore_empty);
+		sem_post(&mutex);
 	}
 };
 
